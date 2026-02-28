@@ -1,6 +1,3 @@
-## FOSS_Hackathon
-# Voice2Gesture
-
 ## Introduction
 
 Welcome to **Voice2Gesture**, a web application designed to make communication more inclusive. This tool converts spoken language in videos into sign language, providing visual representations of signs to displayed for deaf people. Whether you're an educator, content creator, or learner, Sign Language Helper helps bridge the gap between hearing and non-hearing communities, making information accessible to everyone with ease.
