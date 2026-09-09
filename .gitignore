@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.zip
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+
+# Media files (user uploads & generated overlays)
+media/*
+!media/.gitkeep
+!media/letters/
+!media/words/
+
+# macOS artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Local scratch / logs
+scratch/
+*.log
+
+# Large model binaries (>100MB limit on GitHub)
+*.keras
+*.h5
+models/*.keras
+models/*.h5

@@ -1,176 +1,599 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Language Helper</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'styles.css' %}">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-image: url('{% static  "C:\Users\Sejal\Desktop\FOSS\sign_language_app\static\sign_language_image.jpg" %}'); /* Background image */
-            background-size: cover; /* Cover the entire page */
-            background-position: center; /* Center the image */
-            color: #fff; /* White text for contrast */
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-        h1 {
-            color: #fff;
-            margin-top: 20px;
-        }
-        form {
-            background: rgba(0, 0, 0, 0.7); /* Dark transparent background for the form */
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-        input[type="file"] {
-            margin-bottom: 10px;
-        }
-        button {
-            background-color: #007BFF; /* Blue button */
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-        button:hover {
-            background-color: #0056b3; /* Darker blue on hover */
-        }
-        #result {
-            width: 80%;
-            max-width: 800px;
-            text-align: center;
-        }
-        #images-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-        .word {
-            margin-bottom: 20px;
-        }
-        .letter {
-            margin: 5px;
-        }
-        video {
-            width: 100%;
-            max-width: 600px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin: 0 auto; /* Center the video horizontally */
-        }
-        .navbar {
-            width: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 20px;
-            position: fixed;
-            top: 0;
-            z-index: 1000;
-        }
-        .navbar a {
-            color: white;
-            text-decoration: none;
-            padding: 10px;
-            font-size: 18px;
-        }
-        .navbar a:hover {
-            background-color: #007BFF;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voice2Gesture — Live Speech to Sign Language AI</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'style.css' %}">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤟</text></svg>">
 </head>
 <body>
-    <div class="navbar">
-        <a href="#">Home</a>
-        <a href="#about">About Me</a>
+
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <a href="#" class="brand">
+      <div class="brand-icon">🤟</div>
+      <span class="brand-name">Voice2Gesture</span>
+    </a>
+    <div class="nav-badge">
+      <span class="pulse-dot"></span>
+      <span>Real-Time ASL Engine Active</span>
     </div>
-    <h1>Sign Language Helper</h1>
-    <form id="text-form" method="post" enctype="multipart/form-data">
+  </nav>
+
+  <!-- Main Container -->
+  <main class="container">
+    <header class="hero">
+      <h1>Translate Speech into Sign Language</h1>
+      <p>Speak using your camera or upload a video. Our AI transcribes spoken words and translates them into American Sign Language (ASL) gestures.</p>
+    </header>
+
+    <!-- Mode Selector Tabs -->
+    <div class="tabs-wrapper">
+      <div class="tab-nav">
+        <button class="tab-btn active" data-tab="tab-camera">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          Live Camera
+        </button>
+        <button class="tab-btn" data-tab="tab-upload">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload Video
+        </button>
+        <button class="tab-btn" data-tab="tab-mic">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          Quick Speech / Text
+        </button>
+      </div>
+    </div>
+
+    <!-- TAB 1: Live Camera Mode -->
+    <section id="tab-camera" class="tab-panel active glass-card">
+      <div class="camera-container">
+        <div class="video-preview-wrapper" id="camera-viewport">
+          <div class="camera-placeholder" id="camera-off-placeholder">
+            <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+            <p>Camera is currently off</p>
+          </div>
+          <video id="webcam-video" autoplay playsinline muted></video>
+
+          <div class="rec-overlay" id="rec-indicator">
+            <span class="rec-dot"></span>
+            <span>REC <span id="record-timer">00:00</span></span>
+          </div>
+        </div>
+
+        <!-- Live Subtitles / Speech Box -->
+        <div class="live-subtitle-box">
+          <span class="live-mic-icon">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+          </span>
+          <span class="live-transcript-text" id="live-camera-subtitles"></span>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls-row">
+          <button class="btn btn-secondary" id="btn-toggle-camera">
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            Start Camera
+          </button>
+          <button class="btn btn-record" id="btn-record" disabled>
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+            Start Recording
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: Upload Video File -->
+    <section id="tab-upload" class="tab-panel glass-card">
+      <form id="upload-form" enctype="multipart/form-data">
         {% csrf_token %}
-        <input type="file" name="video" accept="video/*" required>
-        <button type="submit">Submit</button>
-    </form>
-    <div id="result">
-        <h2 id="loading-text" style="display: none;">Processing your video, please wait...</h2>
-        <h2>Output Video</h2>
-        <video id="output-video" controls style="display: none;">
-            <source id="output-video-source" src="" type="video/mp4">
-            Your browser does not support the video tag.
-        </video>
-        <h2>Generated Images</h2>
-        <div id="images-container"></div>
+        <div class="dropzone" id="file-dropzone">
+          <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          <h3>Choose a video or drag & drop here</h3>
+          <p>Supported formats: MP4, WebM, MOV (Max 50MB)</p>
+          <input type="file" id="video-file-input" name="video" accept="video/*" style="display: none;">
+        </div>
+
+        <div id="file-preview-card">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="color: var(--accent);"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            <div>
+              <div id="file-name" style="font-weight: 600; font-size: 0.95rem;">video.mp4</div>
+              <div id="file-size" style="font-size: 0.8rem; color: var(--text-muted);">0 MB</div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary" id="btn-remove-file" style="padding: 6px 14px; font-size: 0.85rem;">Remove</button>
+        </div>
+
+        <div class="controls-row" style="margin-top: 24px;">
+          <button type="submit" class="btn btn-primary" id="btn-submit-upload" disabled>
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Translate Video to Sign Language
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- TAB 3: Quick Voice / Text Mode -->
+    <section id="tab-mic" class="tab-panel glass-card">
+      <div class="speech-mode-box">
+        <button type="button" class="mic-circle-btn" id="btn-quick-mic" title="Click to speak">
+          <svg width="36" height="36" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <p style="color: var(--text-muted); font-size: 0.95rem;" id="mic-status-label">Click microphone to speak or type below</p>
+
+        <textarea class="speech-input-field" id="direct-text-input" placeholder="e.g. 'Hello how are you' or speak into the microphone..."></textarea>
+
+        <button type="button" class="btn btn-primary" id="btn-translate-text">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Generate Sign Language
+        </button>
+      </div>
+    </section>
+
+    <!-- Processing Indicator -->
+    <div id="processing-indicator">
+      <div class="spinner"></div>
+      <h3 style="font-family: 'Outfit'; font-size: 1.3rem;" id="process-step-title">Processing Speech & Signs...</h3>
+      <p style="color: var(--text-muted); font-size: 0.9rem;" id="process-step-desc">Analyzing audio track and synthesizing ASL hand gestures.</p>
     </div>
-    <script>
-        const form = document.getElementById('text-form');
-        const loadingText = document.getElementById('loading-text');
-        const outputVideo = document.getElementById('output-video');
-        
-        form.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            loadingText.style.display = 'block';
-            outputVideo.style.display = 'none';
-            
-            const formData = new FormData(form);
-            const response = await fetch('{% url "upload_video" %}', {
-                method: 'POST',
-                body: formData,
-            });
-            const data = await response.json();
-            loadingText.style.display = 'none';
 
-            if (response.ok) {
-                const imagesContainer = document.getElementById('images-container');
-                imagesContainer.innerHTML = ''; // Clear existing images
+    <!-- Results Section -->
+    <section id="results-section">
+      <!-- Recognized Speech Banner -->
+      <div class="transcript-banner">
+        <span class="transcript-badge">Recognized Speech</span>
+        <span class="transcript-content" id="final-transcript-text">"Hi how are you"</span>
+      </div>
 
-                data.images.forEach(wordData => {
-                    const wordDiv = document.createElement('div');
-                    wordDiv.classList.add('word');
-                    const wordTitle = document.createElement('h3');
-                    wordTitle.innerText = `Word: ${wordData.word}`;
-                    wordDiv.appendChild(wordTitle);
+      <!-- Dual Display Grid -->
+      <div class="results-grid">
+        <!-- Video Player Card -->
+        <div class="glass-card video-container" id="result-video-card">
+          <h3 style="margin-bottom: 14px; font-family: 'Outfit';">Overlaid Sign Video</h3>
+          <video id="result-video-player" controls playsinline></video>
+          <div style="margin-top: 14px; display: flex; justify-content: flex-end;">
+            <a href="#" id="download-video-btn" class="btn btn-secondary" download="voice2gesture_output.mp4" style="font-size: 0.85rem; padding: 8px 16px;">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Video
+            </a>
+          </div>
+        </div>
 
-                    wordData.letters.forEach(letterData => {
-                        const letterDiv = document.createElement('div');
-                        letterDiv.classList.add('letter');
+        <!-- Interactive Sign Language Gallery -->
+        <div class="glass-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <h3 style="font-family: 'Outfit';">ASL Hand Gestures</h3>
+            <span style="font-size: 0.85rem; color: var(--accent); font-weight: 600;" id="gesture-count-badge">0 Words</span>
+          </div>
+          <div class="signs-container" id="signs-display-container">
+            <!-- Dynamically populated word and letter sign cards -->
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
-                        const letterTitle = document.createElement('p');
-                        letterTitle.innerText = `Letter: ${letterData.char}`;
-                        letterDiv.appendChild(letterTitle);
+  <footer>
+    Voice2Gesture — Inclusive Communication Powered by Machine Learning & American Sign Language
+  </footer>
 
-                        const img = document.createElement('img');
-                        img.src = letterData.image_url;
-                        img.alt = `Image for ${letterData.char}`;
-                        img.style.width = '128px';  // Adjust size if needed
-                        img.style.margin = '10px';  // Add spacing between images
-                        letterDiv.appendChild(img);
+  <!-- App Script -->
+  <script>
+    // Tab switching
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanels = document.querySelectorAll('.tab-panel');
 
-                        wordDiv.appendChild(letterDiv);
-                    });
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabPanels.forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const target = document.getElementById(btn.dataset.tab);
+        if (target) target.classList.add('active');
+      });
+    });
 
-                    imagesContainer.appendChild(wordDiv);
-                });
+    // -------------------------------------------------------------
+    // WEBCAM & MEDIA RECORDER IMPLEMENTATION
+    // -------------------------------------------------------------
+    let mediaStream = null;
+    let mediaRecorder = null;
+    let recordedChunks = [];
+    let recordInterval = null;
+    let recordSeconds = 0;
+    let speechRecognition = null;
+    let cameraTranscript = "";
 
-                const outputVideoSource = document.getElementById('output-video-source');
-                outputVideoSource.src = data.output_video_url;
-                outputVideo.style.display = 'block';
-                outputVideo.load();
-            } else {
-                alert('Error uploading video');
-            }
+    const webcamVideo = document.getElementById('webcam-video');
+    const btnToggleCamera = document.getElementById('btn-toggle-camera');
+    const btnRecord = document.getElementById('btn-record');
+    const cameraPlaceholder = document.getElementById('camera-off-placeholder');
+    const recIndicator = document.getElementById('rec-indicator');
+    const recordTimer = document.getElementById('record-timer');
+    const liveCameraSubtitles = document.getElementById('live-camera-subtitles');
+
+    // Speech Recognition Setup (Web Speech API)
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      speechRecognition = new SpeechRecognition();
+      speechRecognition.continuous = true;
+      speechRecognition.interimResults = true;
+      speechRecognition.lang = 'en-US';
+
+      speechRecognition.onresult = (event) => {
+        let interim = '';
+        let final = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            final += event.results[i][0].transcript + ' ';
+          } else {
+            interim += event.results[i][0].transcript;
+          }
+        }
+        if (final) cameraTranscript += final;
+        liveCameraSubtitles.innerText = cameraTranscript + (interim ? ` (${interim})` : '');
+      };
+
+      speechRecognition.onerror = (e) => {
+        console.warn('Speech recognition warning:', e.error);
+      };
+    }
+
+    // Toggle Camera
+    btnToggleCamera.addEventListener('click', async () => {
+      if (mediaStream) {
+        // Stop camera
+        stopCamera();
+      } else {
+        // Start camera
+        try {
+          mediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" },
+            audio: true
+          });
+          webcamVideo.srcObject = mediaStream;
+          cameraPlaceholder.style.display = 'none';
+          btnToggleCamera.innerHTML = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34m-7.72-2.06a4 4 0 1 1-5.56-5.56"/></svg> Stop Camera`;
+          btnRecord.disabled = false;
+        } catch (err) {
+          alert('Could not access camera/microphone: ' + err.message);
+        }
+      }
+    });
+
+    function stopCamera() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(t => t.stop());
+        mediaStream = null;
+      }
+      webcamVideo.srcObject = null;
+      cameraPlaceholder.style.display = 'flex';
+      btnToggleCamera.innerHTML = `<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Start Camera`;
+      btnRecord.disabled = true;
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        stopRecording();
+      }
+    }
+
+    // Start / Stop Recording
+    btnRecord.addEventListener('click', () => {
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        startRecording();
+      } else {
+        stopRecording();
+      }
+    });
+
+    function startRecording() {
+      recordedChunks = [];
+      cameraTranscript = "";
+      liveCameraSubtitles.innerText = "";
+
+      let options = { mimeType: 'video/webm;codecs=vp8,opus' };
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'video/webm' };
+      }
+
+      mediaRecorder = new MediaRecorder(mediaStream, options);
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) recordedChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const videoBlob = new Blob(recordedChunks, { type: 'video/webm' });
+        submitRecordedVideo(videoBlob, cameraTranscript);
+      };
+
+      mediaRecorder.start(250); // slices every 250ms
+
+      if (speechRecognition) {
+        try { speechRecognition.start(); } catch(e){}
+      }
+
+      // UI update
+      recIndicator.classList.add('active');
+      document.getElementById('camera-viewport').classList.add('recording');
+      btnRecord.innerHTML = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg> Stop & Translate`;
+      btnRecord.classList.replace('btn-record', 'btn-primary');
+
+      recordSeconds = 0;
+      recordTimer.innerText = "00:00";
+      recordInterval = setInterval(() => {
+        recordSeconds++;
+        const mins = String(Math.floor(recordSeconds / 60)).padStart(2, '0');
+        const secs = String(recordSeconds % 60).padStart(2, '0');
+        recordTimer.innerText = `${mins}:${secs}`;
+      }, 1000);
+    }
+
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+      if (speechRecognition) {
+        try { speechRecognition.stop(); } catch(e){}
+      }
+      clearInterval(recordInterval);
+      recIndicator.classList.remove('active');
+      document.getElementById('camera-viewport').classList.remove('recording');
+      btnRecord.innerHTML = `<svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg> Start Recording`;
+      btnRecord.classList.replace('btn-primary', 'btn-record');
+    }
+
+    async function submitRecordedVideo(blob, liveTranscript) {
+      showProcessing("Translating Camera Recording...", "Extracting audio and synthesizing sign language...");
+      const formData = new FormData();
+      formData.append('video', blob, 'camera_recording.webm');
+      formData.append('browser_transcript', liveTranscript || '');
+
+      try {
+        const res = await fetch('{% url "upload_video" %}', {
+          method: 'POST',
+          body: formData,
+          headers: { 'X-CSRFToken': getCookie('csrftoken') }
         });
-    </script>
+        const data = await res.json();
+        hideProcessing();
+        renderResults(data);
+      } catch (err) {
+        hideProcessing();
+        alert('Translation failed: ' + err.message);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // FILE UPLOAD MODE
+    // -------------------------------------------------------------
+    const dropzone = document.getElementById('file-dropzone');
+    const fileInput = document.getElementById('video-file-input');
+    const filePreviewCard = document.getElementById('file-preview-card');
+    const fileName = document.getElementById('file-name');
+    const fileSize = document.getElementById('file-size');
+    const btnRemoveFile = document.getElementById('btn-remove-file');
+    const btnSubmitUpload = document.getElementById('btn-submit-upload');
+    const uploadForm = document.getElementById('upload-form');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        handleFileSelect(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files.length) handleFileSelect(fileInput.files[0]);
+    });
+
+    function handleFileSelect(file) {
+      fileName.innerText = file.name;
+      fileSize.innerText = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+      filePreviewCard.style.display = 'flex';
+      btnSubmitUpload.disabled = false;
+    }
+
+    btnRemoveFile.addEventListener('click', () => {
+      fileInput.value = '';
+      filePreviewCard.style.display = 'none';
+      btnSubmitUpload.disabled = true;
+    });
+
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!fileInput.files.length) return;
+
+      showProcessing("Processing Uploaded Video...", "Transcribing audio and generating sign language overlays...");
+      const formData = new FormData(uploadForm);
+
+      try {
+        const res = await fetch('{% url "upload_video" %}', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await res.json();
+        hideProcessing();
+        renderResults(data);
+      } catch (err) {
+        hideProcessing();
+        alert('Upload processing failed: ' + err.message);
+      }
+    });
+
+    // -------------------------------------------------------------
+    // QUICK SPEECH & DIRECT TEXT MODE
+    // -------------------------------------------------------------
+    const btnQuickMic = document.getElementById('btn-quick-mic');
+    const directTextInput = document.getElementById('direct-text-input');
+    const btnTranslateText = document.getElementById('btn-translate-text');
+    const micStatusLabel = document.getElementById('mic-status-label');
+
+    let quickSpeechRec = null;
+    let isQuickListening = false;
+
+    if (SpeechRecognition) {
+      quickSpeechRec = new SpeechRecognition();
+      quickSpeechRec.continuous = false;
+      quickSpeechRec.lang = 'en-US';
+
+      quickSpeechRec.onresult = (e) => {
+        const spoken = e.results[0][0].transcript;
+        directTextInput.value = spoken;
+        micStatusLabel.innerText = `Recognized: "${spoken}"`;
+        // Auto translate
+        translateDirectText(spoken);
+      };
+
+      quickSpeechRec.onend = () => {
+        isQuickListening = false;
+        btnQuickMic.classList.remove('listening');
+      };
+    }
+
+    btnQuickMic.addEventListener('click', () => {
+      if (!quickSpeechRec) {
+        alert('Speech recognition is not supported in this browser. Please type your phrase in the text box.');
+        return;
+      }
+      if (!isQuickListening) {
+        quickSpeechRec.start();
+        isQuickListening = true;
+        btnQuickMic.classList.add('listening');
+        micStatusLabel.innerText = "Listening... Speak now!";
+      } else {
+        quickSpeechRec.stop();
+      }
+    });
+
+    btnTranslateText.addEventListener('click', () => {
+      const txt = directTextInput.value.trim();
+      if (!txt) {
+        alert('Please enter or speak some text first.');
+        return;
+      }
+      translateDirectText(txt);
+    });
+
+    async function translateDirectText(text) {
+      showProcessing("Generating Sign Language...", `Translating "${text}" into ASL gestures...`);
+      try {
+        const res = await fetch('{% url "translate_text" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ text: text })
+        });
+        const data = await res.json();
+        hideProcessing();
+        renderResults(data, false);
+      } catch (err) {
+        hideProcessing();
+        alert('Translation failed: ' + err.message);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // RENDER RESULTS
+    // -------------------------------------------------------------
+    function renderResults(data, hasVideo = true) {
+      const resultsSection = document.getElementById('results-section');
+      const finalTranscriptText = document.getElementById('final-transcript-text');
+      const signsDisplay = document.getElementById('signs-display-container');
+      const resultVideoCard = document.getElementById('result-video-card');
+      const resultVideoPlayer = document.getElementById('result-video-player');
+      const downloadVideoBtn = document.getElementById('download-video-btn');
+      const gestureCountBadge = document.getElementById('gesture-count-badge');
+
+      if (data.warning && !data.words?.length) {
+        alert(data.warning);
+        return;
+      }
+
+      finalTranscriptText.innerText = `"${data.transcript || 'Speech translated'}"`;
+      gestureCountBadge.innerText = `${data.words?.length || 0} Words Translated`;
+
+      // Handle video
+      if (hasVideo && data.output_video_url) {
+        resultVideoCard.style.display = 'block';
+        resultVideoPlayer.src = data.output_video_url;
+        downloadVideoBtn.href = data.output_video_url;
+        resultVideoPlayer.load();
+      } else {
+        resultVideoCard.style.display = 'none';
+      }
+
+      // Populate words and letter cards
+      signsDisplay.innerHTML = '';
+      if (data.words && data.words.length) {
+        data.words.forEach((wordObj, wIdx) => {
+          const card = document.createElement('div');
+          card.className = 'word-card';
+
+          let lettersHtml = '';
+          wordObj.letters.forEach(letObj => {
+            lettersHtml += `
+              <div class="letter-tile">
+                <img src="${letObj.image_url}" alt="Sign for ${letObj.char}" loading="lazy">
+                <span>${letObj.char}</span>
+              </div>
+            `;
+          });
+
+          card.innerHTML = `
+            <div class="word-header">
+              <span class="word-title">${wordObj.word}</span>
+              <span style="font-size: 0.8rem; color: var(--text-dim);">Word #${wIdx + 1}</span>
+            </div>
+            <img class="word-banner-img" src="${wordObj.word_image_url}" alt="Word Banner for ${wordObj.word}">
+            <div class="letters-grid">
+              ${lettersHtml}
+            </div>
+          `;
+          signsDisplay.appendChild(card);
+        });
+      }
+
+      resultsSection.style.display = 'block';
+      resultsSection.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function showProcessing(title, desc) {
+      document.getElementById('process-step-title').innerText = title;
+      document.getElementById('process-step-desc').innerText = desc;
+      document.getElementById('processing-indicator').style.display = 'block';
+    }
+
+    function hideProcessing() {
+      document.getElementById('processing-indicator').style.display = 'none';
+    }
+
+    function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+          const cookie = cookies[i].trim();
+          if (cookie.substring(0, name.length + 1) === (name + '=')) {
+            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+            break;
+          }
+        }
+      }
+      return cookieValue;
+    }
+  </script>
 </body>
 </html>
