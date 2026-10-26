@@ -8,8 +8,8 @@ import threading
 
 def open_browser():
     time.sleep(1.5)
-    print("\n🌐 Opening website in your default browser: http://127.0.0.1:8000/")
-    webbrowser.open("http://127.0.0.1:8000/")
+    print("\n🌐 Opening website in your default browser: http://localhost:8000/")
+    webbrowser.open("http://localhost:8000/")
 
 if __name__ == '__main__':
     base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     print("=" * 58)
     print("        🤟 Voice2Gesture AI — Live Server Runner          ")
     print("=" * 58)
-    print("Starting Django server on http://127.0.0.1:8000/")
+    print("Starting Django server on http://localhost:8000/")
     print("Press Ctrl+C to stop the server.\n")
 
     cmd = [python_bin, 'manage.py', 'runserver', '0.0.0.0:8000']
