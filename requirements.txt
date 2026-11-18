@@ -8,6 +8,7 @@ click==8.1.7
 colorama==0.4.6
 contourpy==1.2.1
 cycler==0.12.1
+deep-translator>=1.11.4
 decorator==4.4.2
 Django==5.0.7
 flatbuffers==24.3.25

@@ -21,6 +21,14 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from moviepy.editor import VideoFileClip, CompositeVideoClip, ImageClip
 import vosk
 
+from .multilingual import (
+    translate_to_english,
+    transcribe_multilingual_audio,
+    detect_language,
+    devanagari_to_latin,
+    is_devanagari
+)
+
 # Ensure NLTK punkt tokenizer is downloaded
 from nltk import download
 try:
@@ -126,6 +134,10 @@ def process_text_into_signs(text):
     letters_dir, words_dir = ensure_dirs()
     model = get_sign_model()
     
+    # Transliterate any residual Devanagari characters (e.g. names) to Latin
+    if is_devanagari(text):
+        text = devanagari_to_latin(text)
+    
     clean_text = re.sub(r'[^a-zA-Z0-9\s]', '', text).strip()
     words = clean_text.split()
     
@@ -193,42 +205,53 @@ def extract_audio_from_video(video_path, audio_path):
         logging.error(f"Error extracting audio from video: {e}")
         return False
 
-def transcribe_audio_to_text(audio_path):
-    """Transcribes an audio WAV file using the Vosk Kaldi speech recognizer."""
+def transcribe_audio_to_text(audio_path, language='en'):
+    """
+    Transcribes an audio WAV file. Supports English ('en'), Hindi ('hi'), and Marathi ('mr').
+    Uses SpeechRecognition for Hindi/Marathi/online, with Vosk Kaldi offline fallback for English.
+    """
     if not os.path.exists(audio_path):
         return ""
-        
-    if not os.path.exists(VOSK_MODEL_PATH):
-        logging.warning(f"Vosk model not found at {VOSK_MODEL_PATH}")
-        return ""
 
-    try:
-        wf = wave.open(audio_path, "rb")
-        vosk_model = vosk.Model(VOSK_MODEL_PATH)
-        recognizer = vosk.KaldiRecognizer(vosk_model, wf.getframerate())
-        recognizer.SetWords(True)
+    # If Hindi or Marathi requested, transcribe with Indic language model
+    if language in ['hi', 'mr']:
+        indic_transcript = transcribe_multilingual_audio(audio_path, language=language)
+        if indic_transcript:
+            return indic_transcript
 
-        transcript_parts = []
-        while True:
-            data = wf.readframes(4000)
-            if len(data) == 0:
-                break
-            if recognizer.AcceptWaveform(data):
-                res = json.loads(recognizer.Result())
-                txt = res.get("text", "")
-                if txt:
-                    transcript_parts.append(txt)
+    # Offline Vosk transcription for English
+    if os.path.exists(VOSK_MODEL_PATH):
+        try:
+            wf = wave.open(audio_path, "rb")
+            vosk_model = vosk.Model(VOSK_MODEL_PATH)
+            recognizer = vosk.KaldiRecognizer(vosk_model, wf.getframerate())
+            recognizer.SetWords(True)
 
-        final_res = json.loads(recognizer.FinalResult())
-        final_txt = final_res.get("text", "")
-        if final_txt:
-            transcript_parts.append(final_txt)
+            transcript_parts = []
+            while True:
+                data = wf.readframes(4000)
+                if len(data) == 0:
+                    break
+                if recognizer.AcceptWaveform(data):
+                    res = json.loads(recognizer.Result())
+                    txt = res.get("text", "")
+                    if txt:
+                        transcript_parts.append(txt)
 
-        wf.close()
-        return " ".join(transcript_parts).strip()
-    except Exception as e:
-        logging.error(f"Error in Vosk transcription: {e}")
-        return ""
+            final_res = json.loads(recognizer.FinalResult())
+            final_txt = final_res.get("text", "")
+            if final_txt:
+                transcript_parts.append(final_txt)
+
+            wf.close()
+            vosk_result = " ".join(transcript_parts).strip()
+            if vosk_result:
+                return vosk_result
+        except Exception as e:
+            logging.error(f"Error in Vosk transcription: {e}")
+
+    # Fallback SpeechRecognition
+    return transcribe_multilingual_audio(audio_path, language=language if language in ['hi', 'mr'] else 'en')
 
 def overlay_images_on_video(video_path, images_data, output_video_path):
     """Overlays sign language word banners on the original video."""
@@ -282,7 +305,8 @@ def index(request):
 def upload_video(request):
     """
     Handles video uploads (both file uploads and live camera recordings).
-    Extracts speech, generates sign language gestures, and overlays them onto the video.
+    Extracts speech (Hindi, Marathi, or English), translates to English if necessary,
+    generates sign language gestures, and overlays them onto the video.
     """
     if request.method != 'POST':
         return JsonResponse({'error': 'Invalid request method. Please use POST.'}, status=405)
@@ -290,6 +314,8 @@ def upload_video(request):
     video_file = request.FILES.get('video')
     if not video_file:
         return JsonResponse({'error': 'No video file provided.'}, status=400)
+
+    language = request.POST.get('language', 'auto').strip().lower()
 
     # Prepare media folders
     os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
@@ -310,35 +336,45 @@ def upload_video(request):
     audio_path = os.path.join(settings.MEDIA_ROOT, 'extracted_audio.wav')
     has_audio = extract_audio_from_video(video_path, audio_path)
     
-    vosk_transcript = transcribe_audio_to_text(audio_path) if has_audio else ""
+    server_transcript = transcribe_audio_to_text(audio_path, language=language) if has_audio else ""
     
-    # Choose best transcript (prioritize non-empty, use browser live transcript as reliable partner)
-    transcript = vosk_transcript if vosk_transcript else browser_transcript
-    if not transcript:
-        transcript = browser_transcript
+    # Prioritize browser live transcript for camera/mic, or server transcript for uploaded files
+    transcript = browser_transcript if browser_transcript else server_transcript
+    if not transcript and server_transcript:
+        transcript = server_transcript
 
-    logging.info(f"Final Transcript: '{transcript}' (Vosk: '{vosk_transcript}', Browser: '{browser_transcript}')")
+    logging.info(f"Final Transcript: '{transcript}' (Server: '{server_transcript}', Browser: '{browser_transcript}', Lang: '{language}')")
 
     if not transcript:
         return JsonResponse({
             'warning': 'No spoken speech could be detected in the video or recording. Please speak clearly into the microphone and try again.',
+            'original_transcript': '',
+            'translated_transcript': '',
             'transcript': '',
+            'source_language': language,
             'words': [],
             'all_letters': [],
             'output_video_url': settings.MEDIA_URL + filename
         })
 
-    # 2. Convert speech into Sign Language gestures
-    words_data, all_letters = process_text_into_signs(transcript)
+    # 2. Multilingual Translation: Convert Hindi or Marathi to English
+    translated_text, detected_lang = translate_to_english(transcript, source_lang=language)
+    logging.info(f"Translated Text for Signs: '{translated_text}' (Source: {detected_lang})")
 
-    # 3. Create video with sign language overlay
+    # 3. Convert translated speech into Sign Language gestures
+    words_data, all_letters = process_text_into_signs(translated_text)
+
+    # 4. Create video with sign language overlay
     output_video_filename = f"overlay_{os.path.splitext(filename)[0]}.mp4"
     output_video_path = os.path.join(settings.MEDIA_ROOT, output_video_filename)
     overlay_images_on_video(video_path, words_data, output_video_path)
 
     return JsonResponse({
         'success': True,
-        'transcript': transcript,
+        'original_transcript': transcript,
+        'translated_transcript': translated_text,
+        'transcript': translated_text,
+        'source_language': detected_lang,
         'output_video_url': f"{settings.MEDIA_URL}{output_video_filename}",
         'words': words_data,
         'all_letters': all_letters
@@ -347,26 +383,37 @@ def upload_video(request):
 @csrf_exempt
 def translate_text(request):
     """
-    Translates raw text or live speech directly into sign language without requiring video encoding.
+    Translates raw text or live speech (Hindi, Marathi, or English) directly into sign language.
     """
     text = ""
+    language = "auto"
     if request.method == 'POST':
         try:
             body = json.loads(request.body.decode('utf-8'))
             text = body.get('text', '')
+            language = body.get('language', 'auto')
         except Exception:
             text = request.POST.get('text', '')
+            language = request.POST.get('language', 'auto')
     else:
         text = request.GET.get('text', '')
+        language = request.GET.get('language', 'auto')
 
     text = text.strip()
     if not text:
         return JsonResponse({'error': 'No text provided for translation.'}, status=400)
 
-    words_data, all_letters = process_text_into_signs(text)
+    # Translate Hindi or Marathi to English
+    translated_text, detected_lang = translate_to_english(text, source_lang=language)
+    logging.info(f"Direct text translated: '{text}' ({detected_lang}) -> '{translated_text}'")
+
+    words_data, all_letters = process_text_into_signs(translated_text)
     return JsonResponse({
         'success': True,
-        'transcript': text,
+        'original_transcript': text,
+        'translated_transcript': translated_text,
+        'transcript': translated_text,
+        'source_language': detected_lang,
         'words': words_data,
         'all_letters': all_letters
     })

@@ -26,8 +26,30 @@
   <main class="container">
     <header class="hero">
       <h1>Translate Speech into Sign Language</h1>
-      <p>Speak using your camera or upload a video. Our AI transcribes spoken words and translates them into American Sign Language (ASL) gestures.</p>
+      <p>Speak in <strong>English, हिन्दी (Hindi), or मराठी (Marathi)</strong> using your camera, microphone, or video. Our AI transcribes the spoken words, translates them to English, and synthesizes American Sign Language gestures.</p>
     </header>
+
+    <!-- Language Selector Bar -->
+    <div class="lang-selector-bar">
+      <span class="lang-selector-label">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        Input Language:
+      </span>
+      <div class="lang-pill-group">
+        <button type="button" class="lang-pill active" data-lang="en">
+          <span>🇺🇸</span> English
+        </button>
+        <button type="button" class="lang-pill" data-lang="hi">
+          <span>🇮🇳</span> हिन्दी (Hindi)
+        </button>
+        <button type="button" class="lang-pill" data-lang="mr">
+          <span>🇮🇳</span> मराठी (Marathi)
+        </button>
+      </div>
+      <div class="lang-indicator-tag" id="current-lang-tag">
+        English ➔ ASL Signs
+      </div>
+    </div>
 
     <!-- Mode Selector Tabs -->
     <div class="tabs-wrapper">
@@ -89,6 +111,7 @@
     <section id="tab-upload" class="tab-panel glass-card">
       <form id="upload-form" enctype="multipart/form-data">
         {% csrf_token %}
+        <input type="hidden" name="language" id="form-upload-language" value="en">
         <div class="dropzone" id="file-dropzone">
           <svg class="dropzone-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
           <h3>Choose a video or drag & drop here</h3>
@@ -142,10 +165,25 @@
 
     <!-- Results Section -->
     <section id="results-section">
-      <!-- Recognized Speech Banner -->
-      <div class="transcript-banner">
-        <span class="transcript-badge">Recognized Speech</span>
-        <span class="transcript-content" id="final-transcript-text">"Hi how are you"</span>
+      <!-- Dual Transcript Display -->
+      <div class="transcripts-container">
+        <!-- Original Spoken / Input Transcript Card -->
+        <div class="transcript-card original-card" id="original-transcript-card">
+          <div class="transcript-header">
+            <span class="transcript-badge" id="source-lang-badge">Original Input</span>
+            <span class="transcript-lang-label" id="source-lang-label">Detected Language</span>
+          </div>
+          <div class="transcript-content" id="original-transcript-text">"..."</div>
+        </div>
+
+        <!-- Translated English Card -->
+        <div class="transcript-card translated-card" id="translated-transcript-card">
+          <div class="transcript-header">
+            <span class="transcript-badge accent-badge">English Translation</span>
+            <span class="transcript-lang-label">Synthesized to ASL Signs</span>
+          </div>
+          <div class="transcript-content" id="final-transcript-text">"..."</div>
+        </div>
       </div>
 
       <!-- Dual Display Grid -->
@@ -193,6 +231,62 @@
         btn.classList.add('active');
         const target = document.getElementById(btn.dataset.tab);
         if (target) target.classList.add('active');
+      });
+    });
+
+    // -------------------------------------------------------------
+    // MULTILINGUAL CONFIGURATION (English, Hindi, Marathi)
+    // -------------------------------------------------------------
+    const LANG_CONFIG = {
+      en: {
+        srLang: 'en-US',
+        name: 'English',
+        tag: 'English ➔ ASL Signs',
+        placeholder: "e.g. 'Hello how are you' or speak into the microphone...",
+        micPrompt: "Listening in English... Speak now!",
+        cameraPrompt: "Speak clearly in English..."
+      },
+      hi: {
+        srLang: 'hi-IN',
+        name: 'हिन्दी (Hindi)',
+        tag: 'हिन्दी ➔ English ➔ ASL Signs',
+        placeholder: "उदा. 'नमस्ते आप कैसे हैं' या माइक में बोलें...",
+        micPrompt: "हिन्दी में सुन रहे हैं... बोलिए!",
+        cameraPrompt: "हिन्दी में बोलें..."
+      },
+      mr: {
+        srLang: 'mr-IN',
+        name: 'मराठी (Marathi)',
+        tag: 'मराठी ➔ English ➔ ASL Signs',
+        placeholder: "उदा. 'नमस्कार तुम्ही कसे आहात' किंवा माइक मध्ये बोला...",
+        micPrompt: "मराठीत ऐकत आहोत... बोला!",
+        cameraPrompt: "मराठीत बोला..."
+      }
+    };
+
+    let currentLanguage = 'en';
+    const langPills = document.querySelectorAll('.lang-pill');
+    const currentLangTag = document.getElementById('current-lang-tag');
+    const formUploadLanguage = document.getElementById('form-upload-language');
+
+    langPills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        langPills.forEach(p => p.classList.remove('active'));
+        pill.classList.add('active');
+        currentLanguage = pill.dataset.lang;
+        if (formUploadLanguage) formUploadLanguage.value = currentLanguage;
+
+        const cfg = LANG_CONFIG[currentLanguage] || LANG_CONFIG.en;
+        if (currentLangTag) currentLangTag.innerText = cfg.tag;
+        if (directTextInput) directTextInput.placeholder = cfg.placeholder;
+        if (micStatusLabel) micStatusLabel.innerText = `Mode: ${cfg.name}. Click microphone or type below`;
+
+        if (speechRecognition) {
+          speechRecognition.lang = cfg.srLang;
+        }
+        if (quickSpeechRec) {
+          quickSpeechRec.lang = cfg.srLang;
+        }
       });
     });
 
@@ -344,10 +438,12 @@
     }
 
     async function submitRecordedVideo(blob, liveTranscript) {
-      showProcessing("Translating Camera Recording...", "Extracting audio and synthesizing sign language...");
+      const cfg = LANG_CONFIG[currentLanguage] || LANG_CONFIG.en;
+      showProcessing(`Translating ${cfg.name} Recording...`, "Extracting audio, translating to English, and synthesizing sign gestures...");
       const formData = new FormData();
       formData.append('video', blob, 'camera_recording.webm');
       formData.append('browser_transcript', liveTranscript || '');
+      formData.append('language', currentLanguage);
 
       try {
         const res = await fetch('{% url "upload_video" %}', {
@@ -414,8 +510,10 @@
       e.preventDefault();
       if (!fileInput.files.length) return;
 
-      showProcessing("Processing Uploaded Video...", "Transcribing audio and generating sign language overlays...");
+      const cfg = LANG_CONFIG[currentLanguage] || LANG_CONFIG.en;
+      showProcessing(`Processing ${cfg.name} Video...`, "Transcribing audio, translating to English, and generating sign language overlays...");
       const formData = new FormData(uploadForm);
+      formData.set('language', currentLanguage);
 
       try {
         const res = await fetch('{% url "upload_video" %}', {
@@ -445,12 +543,12 @@
     if (SpeechRecognition) {
       quickSpeechRec = new SpeechRecognition();
       quickSpeechRec.continuous = false;
-      quickSpeechRec.lang = 'en-US';
+      quickSpeechRec.lang = LANG_CONFIG[currentLanguage].srLang;
 
       quickSpeechRec.onresult = (e) => {
         const spoken = e.results[0][0].transcript;
         directTextInput.value = spoken;
-        micStatusLabel.innerText = `Recognized: "${spoken}"`;
+        micStatusLabel.innerText = `Recognized (${LANG_CONFIG[currentLanguage].name}): "${spoken}"`;
         // Auto translate
         translateDirectText(spoken);
       };
@@ -467,10 +565,11 @@
         return;
       }
       if (!isQuickListening) {
+        quickSpeechRec.lang = LANG_CONFIG[currentLanguage].srLang;
         quickSpeechRec.start();
         isQuickListening = true;
         btnQuickMic.classList.add('listening');
-        micStatusLabel.innerText = "Listening... Speak now!";
+        micStatusLabel.innerText = LANG_CONFIG[currentLanguage].micPrompt;
       } else {
         quickSpeechRec.stop();
       }
@@ -486,7 +585,8 @@
     });
 
     async function translateDirectText(text) {
-      showProcessing("Generating Sign Language...", `Translating "${text}" into ASL gestures...`);
+      const cfg = LANG_CONFIG[currentLanguage] || LANG_CONFIG.en;
+      showProcessing("Translating & Generating Signs...", `Converting ${cfg.name} text into English and ASL gestures...`);
       try {
         const res = await fetch('{% url "translate_text" %}', {
           method: 'POST',
@@ -494,7 +594,7 @@
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken')
           },
-          body: JSON.stringify({ text: text })
+          body: JSON.stringify({ text: text, language: currentLanguage })
         });
         const data = await res.json();
         hideProcessing();
@@ -505,11 +605,19 @@
       }
     }
 
+    function getLangDisplayName(code) {
+      if (code === 'hi') return '🇮🇳 Hindi (हिन्दी)';
+      if (code === 'mr') return '🇮🇳 Marathi (मराठी)';
+      return '🇺🇸 English';
+    }
+
     // -------------------------------------------------------------
     // RENDER RESULTS
     // -------------------------------------------------------------
     function renderResults(data, hasVideo = true) {
       const resultsSection = document.getElementById('results-section');
+      const originalTranscriptText = document.getElementById('original-transcript-text');
+      const sourceLangLabel = document.getElementById('source-lang-label');
       const finalTranscriptText = document.getElementById('final-transcript-text');
       const signsDisplay = document.getElementById('signs-display-container');
       const resultVideoCard = document.getElementById('result-video-card');
@@ -522,8 +630,15 @@
         return;
       }
 
-      finalTranscriptText.innerText = `"${data.transcript || 'Speech translated'}"`;
-      gestureCountBadge.innerText = `${data.words?.length || 0} Words Translated`;
+      // Populate dual transcript cards
+      const origText = data.original_transcript || data.transcript || 'No speech';
+      const transText = data.translated_transcript || data.transcript || origText;
+      
+      originalTranscriptText.innerText = `"${origText}"`;
+      sourceLangLabel.innerText = getLangDisplayName(data.source_language);
+      finalTranscriptText.innerText = `"${transText}"`;
+
+      gestureCountBadge.innerText = `${data.words?.length || 0} Words Synthesized`;
 
       // Handle video
       if (hasVideo && data.output_video_url) {
